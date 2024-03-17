@@ -1,0 +1,744 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+
+<head>
+
+
+    <script language="javascript">
+
+        // Helping Functions:
+
+        /*
+        #############################################################
+        Creates a new P2P-object, type sender or reciever = SorR, with a random 10 char
+        name and pushes the name and object id into one collection each to keep track.
+        #############################################################
+        */
+        function newP2P(SorR) {
+            var cName = randm(10);
+            globalP2Pnames.push(cName);
+            globalP2Pobjs[cName] = new P2Pobj(SorR, cName);
+        }
+
+
+        /*
+        #############################################################
+        Initializing function with respect to sender and receiver.
+        #############################################################
+        */
+        function P2Pobj(SorR, cName) {
+
+            this.SorR = SorR;			// Send or recieve
+            this.cName = cName;		// Object name
+            this.tPhase = 0;			// Stage of action
+            this.commonSeed = '';		// Seed all ends in
+
+            if (SorR == 'S') {
+                this.genAB = genAB;			// function
+                this.newCommon = newCommon;	// function
+            }
+
+            if (SorR == 'R') {
+                this.answer = answer;		// function
+            }
+
+        }
+
+
+        /*
+        #############################################################
+        // Simplest possible random generator for a 1 or 0 string of length L.
+        #############################################################
+        */
+        function genS(L) {
+
+            var s = '';
+            for (var n = 0; n < L; n++) {
+                if (Math.random() < 0.5) s += '1';
+                else s += '0';
+            }
+
+            return s;
+        }
+
+
+        /*
+        #############################################################
+        One quick and dirty way to work with "integers" to apply pseudo-random magic to
+        a calling loop. The vN numbers will update "irregularely" and can then be used for
+        creation of an "irregular" bitstring. For a more "random" function it probably
+        can be an idea to focus on the calling function and its conditions. You can for
+        instance use partial bitcount, bit 4,5,6,7 in each resulting number. Pretty "random".
+        #############################################################
+        */
+        function d1(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11) {
+
+            var ssum = v1 + v2 + v3 + v4 + v5 + v6 + v7 + v8 + v9 + v10 + v11;
+            ssum = Math.floor(Math.sqrt(ssum));
+
+            // 9007199254740991 is max
+            v1 = (v1 * 3865021 + ssum) % 7856537;
+            v2 = (v2 * 6298327 + ssum) % 5639011;
+            v3 = (v3 * 5322334 + ssum) % 2130929;
+            v4 = (v4 * 1523229 + ssum) % 9673081;
+            v5 = (v5 * 2220823 + ssum) % 5630263;
+            v6 = (v6 * 8520533 + ssum) % 2098723;
+            v7 = (v7 * 4370029 + ssum) % 8732911;
+            v8 = (v8 * 7630935 + ssum) % 6730295;
+            v9 = (v9 * 7635202 + ssum) % 3486609;
+            v10 = (v10 * 3109823 + ssum) % 9823721;
+            v11 = (v11 * 6830012 + ssum) % 4982103;
+
+            return [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11];
+        }
+
+
+        /*
+        #############################################################
+        fullString creates a pseudo random string of 1 and 0 of length L from a 256 char
+        long seed of 1 and 0. Here is much room for improvements, for instance partial bit
+        count, bit 4,5,6,7 in each number instead of simple conditions to generate bits.
+        #############################################################
+        */
+        function fullString(str, L) {
+
+            var v = numarr(str, 24);
+
+            var a = b = c = d = e = f = g = h = i = j = k = 0;
+            str = '';
+
+            for (var n = 0; n < L; n++) {
+                a = b = c = d = e = f = g = h = i = j = k = 0;
+                v = d1(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10]);
+
+                if (v[0] > 2819644) a = 1;
+                if (v[1] < 1491704) b = 1;
+                if (v[2] > 951369) c = 1;
+                if (v[3] < 2746941) d = 1;
+                if (v[4] > 2647204) e = 1;
+                if (v[5] < 3564696) f = 1;
+                if (v[6] > 3892121) g = 1;
+                if (v[7] < 1067781) h = 1;
+                if (v[8] > 1743304) i = 1;
+                if (v[9] < 4911860) j = 1;
+                if (v[10] < 907512) k = 1;
+                str += '' + (a ^ b ^ c ^ d ^ e ^ f ^ g ^ h ^ i ^ j ^ k);
+            }
+
+            return str;
+        }
+
+
+        /*
+        #############################################################
+        The simplest possible function to get a random string a-z of length L generated.
+        #############################################################
+        */
+        function randm(L) {
+            var chrs = "abcdefghijklmnopqrstuvxyz";
+            var nS = "";
+            for (var n = 0; n < L; n++) nS += chrs.charAt(Math.floor(Math.random() * chrs.length));
+            return nS;
+        }
+
+
+        /*
+       #############################################################
+       This is tested out as the fastest way to count bits set in 16 digits bin number. It looks
+       awkward but is so fast it will not be the bottleneck in your function. Remember it only
+       sees the last 16 bits. It can be remade also for 32 bits, but then there are negatives.
+       #############################################################
+       */
+        function bitCount(a) {
+            return ((a & 1) + ((a & 2) >> 1) + ((a & 4) >> 2) + ((a & 8) >> 3) + ((a & 16) >> 4) + ((a & 32) >> 5) + ((a & 64) >> 6) + ((a & 128) >> 7) + ((a & 256) >> 8) + ((a & 512) >> 9) + ((a & 1024) >> 10) + ((a & 2048) >> 11) + ((a & 4096) >> 12) + ((a & 8192) >> 13) + ((a & 16384) >> 14) + ((a & 32768) >> 15));
+        }
+
+
+        /*
+        #############################################################
+        Here you have a function to convert a hexadecimal number to a binary number. The most obvious
+        way to accomplish this is to use a hash table to key for each possible combination of 4 binary
+        digits with the corresponding hexadecimal figure. This is easy as long as the binary string has
+        a length, dividable with 4 without rest. This should be the case for our use.
+        #############################################################
+        */
+        function hex2bin(hexIn) {
+
+            var hbc = { 0: '0000', 1: '0001', 2: '0010', 3: '0011', 4: '0100', 5: '0101', 6: '0110', 7: '0111', 8: '1000', 9: '1001', a: '1010', b: '1011', c: '1100', d: '1101', e: '1110', f: '1111' };
+
+            var binOut = hexIn.split('');
+            var L = binOut.length;
+
+            for (var n = 0; n < L; n++) {
+                binOut[n] = hbc[binOut[n]];
+            }
+
+            binOut = binOut.join('');
+
+            return binOut;
+        }
+
+
+        /*
+        #############################################################
+        We want to be able to decompress a string, written with base 64 charachters to a string of
+        1:s and 0:s. Below one method to do this is employed, Because each 64 base char corresponds to
+        6 binary characters the problem is to handling bitstrings of length != 6xN. So the first
+        characters in the 64base encoded string tells us how many leading bits to remove to regain
+        the orginal bitstring. Of course all 64base characters are viable in an URL, for instance as GET
+        #############################################################
+        */
+        function base64ToBin(b64In) {
+            var hbc = { A: '000000', B: '000001', C: '000010', D: '000011', E: '000100', F: '000101', G: '000110', H: '000111', I: '001000', J: '001001', K: '001010', L: '001011', M: '001100', N: '001101', O: '001110', P: '001111', Q: '010000', R: '010001', S: '010010', T: '010011', U: '010100', V: '010101', W: '010110', X: '010111', Y: '011000', Z: '011001', a: '011010', b: '011011', c: '011100', d: '011101', e: '011110', f: '011111', g: '100000', h: '100001', i: '100010', j: '100011', k: '100100', l: '100101', m: '100110', n: '100111', o: '101000', p: '101001', q: '101010', r: '101011', s: '101100', t: '101101', u: '101110', v: '101111', w: '110000', x: '110001', y: '110010', z: '110011', 0: '110100', 1: '110101', 2: '110110', 3: '110111', 4: '111000', 5: '111001', 6: '111010', 7: '111011', 8: '111100', 9: '111101' };
+
+            var binOut = b64In.split('');			// Each bitstring fragment can simply replace the char
+            var L = binOut.length;				// This is still only the length of b64 input string
+            var cut = binOut[0];				// First char shows how many leading 0:s to remove
+            binOut[0] = '';					// Only decompress the real compressed string
+
+            for (var n = 1; n < L; n++) {
+                var t = binOut[n];
+                if (t == '+' || t == '/') {
+                    if (t == '+') binOut[n] = '111110';			// Avoid the '+' as a (object) key in this conversion
+                    if (t == '/') binOut[n] = '111111'; 		// Avoid the '/' as a (object) key in this conversion
+                }
+                else binOut[n] = hbc[binOut[n]];		// All remaining substrings keyed by a legit character
+            }
+
+            binOut = binOut.join('').substring(cut, L * 6 - 1);		// Remove leading zeros according to cut order.
+            return binOut;
+        }
+
+
+        /*
+        #############################################################
+        You get an string of 1:s and 0:s as input and convert it into a string of base64 characters. This 
+        is done with this function, using chunks of char bitstrings as keys. The length of the input bitstring 
+        is measured right from the beginning to pad it up to next Nx6 value. Then the bitstring 
+        can be evenly represented as a string of base 64 characters. base64() using the first character 
+        as to inform of the size of the leading padding, so the bitstring can be reestablished in full later.
+        #############################################################
+        */
+        function base64(bstr) {
+
+            var L = bstr.length;					// Factual length of bitstring in characters
+            var R = (6 - L % 6) % 6;					// Length of padding needed to roof to Nx6
+            bstr = '00000'.substring(0, R) + bstr;		// Leading padding of zeros shifted in
+            var Ln = L + R;					// Updated length of string inclusive padding
+            var c = 1;						// Start index for bit to base64 conversion
+            var arr = new Array(Ln + 1);				// Prep a recieving array for converted chunks
+            arr[0] = R + '';					// Set first char in output as padding length
+
+            var h64c = { '000000': 'A', '000001': 'B', '000010': 'C', '000011': 'D', '000100': 'E', '000101': 'F', '000110': 'G', '000111': 'H', '001000': 'I', '001001': 'J', '001010': 'K', '001011': 'L', '001100': 'M', '001101': 'N', '001110': 'O', '001111': 'P', '010000': 'Q', '010001': 'R', '010010': 'S', '010011': 'T', '010100': 'U', '010101': 'V', '010110': 'W', '010111': 'X', '011000': 'Y', '011001': 'Z', '011010': 'a', '011011': 'b', '011100': 'c', '011101': 'd', '011110': 'e', '011111': 'f', '100000': 'g', '100001': 'h', '100010': 'i', '100011': 'j', '100100': 'k', '100101': 'l', '100110': 'm', '100111': 'n', '101000': 'o', '101001': 'p', '101010': 'q', '101011': 'r', '101100': 's', '101101': 't', '101110': 'u', '101111': 'v', '110000': 'w', '110001': 'x', '110010': 'y', '110011': 'z', '110100': '0', '110101': '1', '110110': '2', '110111': '3', '111000': '4', '111001': '5', '111010': '6', '111011': '7', '111100': '8', '111101': '9', '111110': '+', '111111': '/' };
+
+            for (var n = 0; n < L; n += 6)
+                arr[c++] = h64c[bstr.substring(n, n + 6)];			// Use next 6 char substr as key for base64
+
+            return arr.join('');
+        }
+
+
+        /*
+        #############################################################
+        numarr() chunks the input string s up in chunks of length chunkL each, beginning at the end.
+        Therefore the chunk with a length which possible differ from chunkL will be the first one.
+        #############################################################
+        */
+        function numarr(s, chunkL) {
+
+            var L = s.length;
+
+            var out = [];
+
+            for (var n = L; n > 0; n -= chunkL) {
+                out.unshift(parseInt(s.substring(Math.max(n - chunkL, 0), n), 2));
+            }
+
+            return (out);
+        }
+
+
+        const MIN = 3;          // variable to store the minimum length of single block
+        const MAX = 9;          // variable to store the maximum length of single block
+        // maximum length can't be greater than 9
+        // minimum length can't be smaller than 0
+        // minimum length <= maximum length
+        /*
+        #############################################################
+        createBlockSetupString(Length) is function to create block rules. 
+        0 => Green: Here 0 represent the green part which is for sender he can decide whether to switch it 1 or 0.
+        1 => Yellow: Here 1 represent the yellow part which is for receiver he can decide whether to switch it 1 or 0.
+        #############################################################
+        */
+        function createBlockSetupString(Length) {
+            var blockSetupString = '';
+
+            var L = 0;      // variable to compute the length
+            var difference = MAX - MIN;
+
+
+            while (L != Length) {
+                // generate random number 
+                var rand = Math.random();
+
+                // multiply with difference 
+                rand = Math.floor(rand * difference);
+
+                // add with min value 
+                rand = rand + MIN;
+
+                // generating block rules
+                if (Math.random() < 0.5) {
+                    // for green part
+                    blockSetupString = blockSetupString.concat('0');
+                }
+                else {
+                    // for yellow part
+                    blockSetupString = blockSetupString.concat('1');
+                }
+
+                // concatinating the results
+                blockSetupString = blockSetupString.concat(rand);
+                L += rand;
+
+                // termination condition
+                if (L + difference > Length) {
+                    // add with min value 
+                    rand = Length - L;
+
+                    // generating block rules
+                    if (Math.random() < 0.5) {
+                        // for green part
+                        blockSetupString = blockSetupString.concat('0');
+                    }
+                    else {
+                        // for yellow part
+                        blockSetupString = blockSetupString.concat('1');
+                    }
+
+                    // concatinating the results
+                    blockSetupString = blockSetupString.concat(rand);
+                    L += rand;
+                }
+            }
+
+            // Do until last block length is greater than or equal to 3
+            if (blockSetupString[blockSetupString.length - 1] < 3) {
+                blockSetupString = createBlockSetupString(Length);
+            }
+
+            return blockSetupString;
+        }
+
+
+        /*
+        #############################################################
+        genPrivateKey(blockSetup, SorR) is function to create keys from the block rules. 
+        For Sender, SorR = 'S', For Receiver SorR 'R'
+        Sender will check if it is green part i.e 0 then it will either switch all to 0 or 1 
+        else if it is yellow i.e 1 it will switch odd number of bits to 1
+        Receiver will check if it is yellow part i.e 1 then it will either switch all to 0 or 1 
+        else if it is green i.e 0 it will switch odd number of bits to 1  
+        #############################################################
+        */
+        function genPrivateKey(blockSetup, SorR) {
+            var psBin = '';
+            var count = 0;
+            const one = '1';
+            const zero = '0';
+            var check;
+            if (SorR === 'S')
+                check = 1;
+            else if (SorR === 'R')
+                check = 0;
+
+            for (var i = 0; i < blockSetup.length; i += 2) {
+                // if block is green i.e 0
+                if ((blockSetup[i] ^ check) == 0) {
+                    // switch the block to 1
+                    if (Math.random() < 0.5) {
+                        psBin = psBin.concat(one.repeat(blockSetup[i + 1]));
+                        count++;       // increment the count if switch is 1
+                    }
+                    // switch the block to 0
+                    else {
+                        psBin = psBin.concat(zero.repeat(blockSetup[i + 1]));
+                    }
+                }
+                // if block is yellow i.e 1
+                else if ((blockSetup[i] ^ check) == 1) {
+                    // switch the odd number of bits to 1
+                    var temp;
+                    do {
+                        temp = genS(blockSetup[i + 1]);
+                    } while (temp.split('1').length % 2);
+                    psBin = psBin.concat(temp);
+                }
+            }
+
+            return [count, psBin];
+        }
+
+
+        /*
+        #############################################################
+        convertStringToNumArray(string) is function to convert given string of 0's and 1's to array of 0's and 1's 
+        #############################################################
+        */
+        function convertStringToNumArray(string) {
+            var num = [];
+            for (var i = 0; i < string.length; i++) {
+                num[i] = parseInt(string[i]);
+            }
+            return num;
+        }
+
+
+        // Main Functions:
+
+        var globalP2Pobjs = {};         // store information about sender or receiver
+        var globalP2Pnames = [];        // store information about the names assign to each sender or receiver
+
+        const LENGTH = 256;             // variable to store the length of the matrix, solution and keys
+        const KEYS = 256;               // variable to store how many keys are for each encrytpion
+        const CHUNK_LENGTH = 16;
+
+
+        // Senders Storage
+        var SenderKeyA = [];            // array of first private keys for sender
+        var SenderKeyB = [];            // array of second private keys for sender
+
+        var SenderKeyAInNumArray = [];  // first private keys in number form
+        var SenderKeyBInNumArray = [];  // second private keys in number form
+
+        var SenderKeyAInBitArray = [];    // first private keys is single bit form
+        var SenderKeyBInBitArray = [];    // second private keys is single bit form
+        var SenderCounts = [];          // array to store number of times sender flips its bit to 1
+
+
+        // Every one Knows:
+        // Matrix M            
+        // solutionSender
+        // VectorA
+        // VectorB
+
+        // Only Sender Knows:
+        // SenderKeyA
+        // SenderKeyB
+        // SenderCounts
+
+        /*
+        #############################################################
+        genAB() is function to generate sender keys and matrix of size LENGTH*LENGTH
+        Further the genAB() will take the matrix and keys and generate solution array which will be sent
+        to receiver
+        #############################################################
+        */
+        function genAB() {
+
+            // Generating block rules
+            var VectorA = createBlockSetupString(LENGTH);
+            var VectorB = createBlockSetupString(LENGTH);
+
+            // Generating Keys from block rules
+            for (var i = 0; i < KEYS; i++) {
+                var values, count = 0;
+
+                // Getting Key A from Block Rules 1 
+                values = genPrivateKey(VectorA, 'S');
+                count = values[0];
+                SenderKeyA[i] = values[1];
+                // Converting key into array of 0's and 1's
+                SenderKeyAInBitArray[i] = convertStringToNumArray(values[1]);
+                // Converting key into array of numbers with bits equal to CHUNK_LENGTH
+                SenderKeyAInNumArray[i] = numarr(SenderKeyA[i], CHUNK_LENGTH);
+
+                // Getting Key B from Block Rules 2 
+                values = genPrivateKey(VectorB, 'S');
+                count += values[0];
+                SenderKeyB[i] = values[1];
+                // Converting key into array of 0's and 1's
+                SenderKeyBInBitArray[i] = convertStringToNumArray(values[1]);
+                // Converting key into array of numbers with bits equal to CHUNK_LENGTH
+                SenderKeyBInNumArray[i] = numarr(SenderKeyB[i], CHUNK_LENGTH);
+
+
+                SenderCounts[i] = count;
+            }
+
+            // variable to store the solution at receiver side
+            var solutionSender = '';
+            var solutionSenderArray = [];
+
+            // generating matrix
+            var openSeed = genS(LENGTH);
+            var matrixString = fullString(openSeed, LENGTH * LENGTH);	// Open seed must be 256 characters long
+            var matrix = [];
+
+            // converting matrix from string to array of 0's and 1's
+            for (var i = 0, j = 0; i < LENGTH * LENGTH; i += LENGTH, j++) {
+                matrix[j] = convertStringToNumArray(matrixString.substring(i, i + LENGTH));
+            }
+
+
+            // calculating solution from Sender side which will be send to Receiver
+            for (var i = 0; i < KEYS; i++) {
+                solutionSenderArray[i] = [];
+                solutionSenderArray[i].length = LENGTH
+                solutionSenderArray[i].fill(0);
+                // Taking AND with Matrix and Sender Key A
+                for (var j = 0; j < LENGTH; j++) {
+                    for (var k = 0; k < LENGTH; k++) {
+                        solutionSenderArray[i][j] += matrix[j][k] & SenderKeyAInBitArray[i][k];
+                    }
+                }
+                // Taking XOR with Matrix and Sender Key B
+                for (var j = 0; j < LENGTH; j++) {
+                    solutionSenderArray[i][j] = solutionSenderArray[i][j] % 2;
+                    solutionSenderArray[i][j] = solutionSenderArray[i][j] ^ SenderKeyBInBitArray[i][j];
+                    solutionSender += solutionSenderArray[i][j];
+                }
+                if (i < KEYS - 1) solutionSender += '=';
+            }
+
+
+            // Combining solution after converting them into base 64
+            solutionSender = solutionSender.split('=');
+            for (var i = 0; i < KEYS; i++) solutionSender[i] = base64(solutionSender[i]);
+            solutionSender = solutionSender.join('=');
+
+            // Sending solution to receiver along with block rules and open seed
+            openSeed = base64(openSeed);
+            document.getElementById('inpTA').value =
+                openSeed + '=' + VectorA + '=' + VectorB + '=' + solutionSender;
+
+        }
+
+        /*
+        #############################################################
+        newCommon() is function to generate common seed from receiver solution with senders key
+        #############################################################
+        */
+        function newCommon() {
+
+            // solution equations from receiver
+            var a = document.getElementById('obfuscated').value;
+            a = a.split('=');
+
+            // Collect common seed
+            var commonHiddenSeed = '';
+
+            var solutionReceiver = a;
+            var solutionReceiverNumArray = a;
+            for (var i = 0; i < KEYS; i++) {
+                // Converting into binary
+                solutionReceiver[i] = base64ToBin(solutionReceiver[i]);
+                // Converting solution into num array of different Chunck size
+                solutionReceiverNumArray[i] = numarr(solutionReceiver[i], CHUNK_LENGTH);
+
+                var sum = 0;
+
+                // Taking end with senders first private key in Chunk Size
+                for (var j = 0; j < SenderKeyAInNumArray.length; j++) {
+                    sum += bitCount(SenderKeyAInNumArray[i][j] & solutionReceiverNumArray[i][j]);
+                }
+
+
+                sum += SenderCounts[i];
+                // taking xor
+                if (sum % 2) {
+                    commonHiddenSeed += '1'
+                }
+                else {
+                    commonHiddenSeed += '0';
+                }
+            }
+
+
+
+
+            // Common Seed
+            document.getElementById('common2').value = commonHiddenSeed;
+        }
+
+        
+        // Every one Knows:
+        // Matrix M            
+        // solutionReceiver
+        // VectorA
+        // VectorB
+
+        // Only Receiver Knows:
+        // ReceiverKeyA
+        // ReceiverKeyB
+        // ReceiverCounts
+
+        /*
+        #############################################################
+        answer() is function to generate receiver keys
+        Further the answer() will take the matrix and keys and generate solution array which will be sent
+        to sender, Moreover the receiver will compute the common seed from sender solution
+        #############################################################
+        */
+        function answer() {
+
+            // Seed for org equations + blockRules + solutions
+            var a = document.getElementById('inpTA').value;
+            // This info is needed to proceed	
+            if (a == '') alert('input data in textarea, please');
+            // Open seed + '='+ BlockRules1 +'='+ BlockRules2 +'='+ Solutions
+            a = a.split('=');
+            // First part is open seed
+            var str = base64ToBin(a.shift());
+            // Now full string			
+            var matrixString = fullString(str, LENGTH * LENGTH);
+            // Matrix in array form of 0's and 1's
+            var matrix = [];
+
+            // Second part is Block Rules for Key A
+            var VectorA = a.shift();
+            // Third part is Block Rules for Key B
+            var VectorB = a.shift();
+
+            var ReceiverKeyA = [];              // array of first private keys for receiver
+            var ReceiverKeyB = [];              // array of second private keys for receiver
+            var ReceiverKeyAInBitArray = [];      // first private keys is single bit form
+            var ReceiverKeyBInBitArray = [];      // second private keys is single bit form
+            var ReceiverKeyAInNumArray = [];  // first private keys in number form
+            var ReceiverKeyBInNumArray = [];  // second private keys in number form
+            var ReceiverCounts = [];            // array to store number of times receiver flips its bit to 1
+            var solutionReceiverArray = [];     // array to store the solution respective of each pair of keys.
+
+            // Generating Keys from block rules
+            for (var i = 0; i < KEYS; i++) {
+
+                var values, count;
+
+                // Getting Key A from Block Rules 1 
+                values = genPrivateKey(VectorA, 'R');
+                count = values[0];
+                ReceiverKeyA[i] = values[1];
+                // Converting key into array of 0's and 1's
+                ReceiverKeyAInBitArray[i] = convertStringToNumArray(values[1]);
+                // Converting key into array of numbers with bits equal to CHUNK_LENGTH
+                ReceiverKeyAInNumArray[i] = numarr(ReceiverKeyA[i], CHUNK_LENGTH);
+
+                // Getting Key B from Block Rules 2
+                values = genPrivateKey(VectorB, 'R');
+                count += values[0];
+                ReceiverKeyB[i] = values[1];
+                // Converting key into array of 0's and 1's
+                ReceiverKeyBInBitArray[i] = convertStringToNumArray(values[1]);
+                // Converting key into array of numbers with bits equal to CHUNK_LENGTH
+                ReceiverKeyBInNumArray[i] = numarr(ReceiverKeyB[i], CHUNK_LENGTH);
+
+                // Storing Counts of switch 1 by receiver for both keys.
+                ReceiverCounts[i] = count;
+            }
+
+            // variable to store the solution at receiver side
+            var solutionReceiver = '';
+
+            // converting matrix from string to array of 0's and 1's
+            for (var i = 0, j = 0; i < LENGTH * LENGTH; i += LENGTH, j++) {
+                matrix[j] = convertStringToNumArray(matrixString.substring(i, i + LENGTH));
+            }
+
+            // calculating solution from Receiver side which will be send to Sender
+            for (var i = 0; i < KEYS; i++) {
+                solutionReceiverArray[i] = [];
+                solutionReceiverArray[i].length = LENGTH
+                solutionReceiverArray[i].fill(0);
+                // Taking AND with Matrix and Receiver Key B
+                for (var j = 0; j < LENGTH; j++) {
+                    for (var k = 0; k < LENGTH; k++) {
+                        solutionReceiverArray[i][j] += matrix[k][j] & ReceiverKeyBInBitArray[i][k];
+                    }
+                }
+                // Taking XOR with Matrix and Receiver Key A
+                for (var j = 0; j < LENGTH; j++) {
+                    solutionReceiverArray[i][j] = solutionReceiverArray[i][j] % 2;
+                    solutionReceiverArray[i][j] = solutionReceiverArray[i][j] ^ ReceiverKeyAInBitArray[i][j];
+                    solutionReceiver += solutionReceiverArray[i][j];
+                }
+                if (i < KEYS - 1) solutionReceiver += '=';
+            }
+
+
+
+            // Collect new equations answers
+            var commonHiddenSeed = '';
+
+            // Calculating common seed from Sender Solution and Receiver Key B along with counts of B
+
+            // Remaining parts is solutions of send by Sender
+            var solutionSender = a;
+            for (var i = 0; i < KEYS; i++) {
+                // Converting into binary
+                solutionSender[i] = base64ToBin(solutionSender[i]);
+                // Converting into array of 0's and 1's
+                solutionSender[i] = numarr(solutionSender[i], CHUNK_LENGTH);
+
+                // Taking AND to get the common seed
+                // Each solution from Sender give us 1 bit of common seed
+                var sum = 0;
+                for (var j = 0; j < ReceiverKeyBInNumArray.length; j++) {
+                    sum += bitCount(solutionSender[i][j] & ReceiverKeyBInNumArray[i][j]);
+                }
+                sum += ReceiverCounts[i];
+                if (sum % 2) {
+                    commonHiddenSeed += '1'
+                }
+                else {
+                    commonHiddenSeed += '0';
+                }
+                sum = 0;
+            }
+
+            // Combining receiver solution and converting it into base64 to send it to Sender side
+            solutionReceiver = solutionReceiver.split('=');
+            // Compress string of 1:s, 0:s to base 64 ...
+            for (var i = 0; i < KEYS; i++) {
+                solutionReceiver[i] = base64(solutionReceiver[i]);
+            }
+            solutionReceiver = solutionReceiver.join('=');
+
+            // Send entire equation list
+            document.getElementById('obfuscated').value = solutionReceiver;
+
+            // Save solutions as commonP2P seed
+            document.getElementById('common1').value = commonHiddenSeed;
+
+        }
+
+    </script>
+
+
+
+</head>
+
+<body>
+
+    <input type="button" id="add" value="New Sender" onClick="newP2P('S')">
+    <input type="button" id="add" value="New Reciever" onClick="newP2P('R')"><br />
+
+    <form>
+        <textarea id='inpTA' style='height:200px;width:850px;'></textarea><br />
+        <textarea id='obfuscated' style='height:200px;width:850px;'></textarea><br />
+        <input type='button' onClick='genAB();' value='priv'><br />
+        <input type='button' onClick='answer();' value='answer'><br />
+        <input type='text' id='common1' size='150'><br />
+        <input type='text' id='common2' size='150'><br />
+        <input type='button' onClick='newCommon();' value='extract'>
+
+        <br />
+        <br />
+        <br />
+        <br />
+    </form>
+
+
+
+</body>
+
+</html>
